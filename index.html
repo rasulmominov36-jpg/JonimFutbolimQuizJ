@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="uz" class="select-none">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="referrer" content="no-referrer">
+<title>JahonFutboli Futbol Testlari</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+// Logo yuklanmasa, ketma-ket zaxira manzillar sinab ko'riladi; hammasi ishlamasa "JF" yozuvi chiqadi
+var LOGO_ALT = ["https://wsrv.nl/?url=i.ibb.co/C57RNJ4f/jonim-JF.jpg", "https://images.weserv.nl/?url=i.ibb.co/C57RNJ4f/jonim-JF.jpg"], logoTry = 0;
+function nextLogo(img) {
+  if (logoTry < LOGO_ALT.length) { img.removeAttribute('referrerpolicy'); img.src = LOGO_ALT[logoTry++]; }
+  else { img.style.display = 'none'; document.getElementById('fallbackLogo').classList.remove('hidden'); }
+}
+</script>
+<script>
+tailwind.config={theme:{extend:{colors:{jf:{red:'#E50914',darkRed:'#B80710',bgGray:'#F8F9FA',cardBorder:'#E9ECEF',textDark:'#111827'}},boxShadow:{'ios-red':'0 10px 25px -5px rgba(229,9,20,.4)'}}}}
+</script>
+<style>
+*{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent}
+img{-webkit-user-drag:none;pointer-events:none}
+body{font-family:'Inter',-apple-system,sans-serif;background:#0b0f17;overflow-x:hidden}
+.active-bounce:active{transform:scale(.97)}
+.timer-circle{transition:stroke-dashoffset .1s linear,stroke .3s}
+/* Chop etish / PDF ga saqlashni bloklash */
+@media print{html,body{display:none!important}}
+/* Suv belgisi: skrinshotdan kim olgani aniq bo'ladi */
+#wm{position:absolute;inset:0;z-index:40;pointer-events:none;overflow:hidden;display:none}
+#wm span{position:absolute;left:-20%;width:140%;transform:rotate(-24deg);text-align:center;font-weight:800;font-size:13px;letter-spacing:2px;color:rgba(0,0,0,.09);white-space:nowrap}
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-0 sm:p-4">
+
+<main id="appWrapper" class="w-full max-w-md h-[100vh] sm:h-[840px] bg-white sm:rounded-[36px] overflow-hidden border-0 sm:border-8 border-slate-900 flex flex-col relative shadow-2xl">
+
+<!-- Suv belgisi -->
+<div id="wm"></div>
+
+<!-- Test boshlanishidan oldingi ogohlantirish -->
+<div id="consentModal" class="hidden absolute inset-0 z-50 flex items-center justify-center p-5 bg-slate-950/85">
+  <div class="w-full bg-white rounded-3xl p-5 text-left shadow-2xl">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-3"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 class="text-lg font-black text-center mb-1">DIQQAT!</h3>
+    <p class="text-[11px] text-gray-500 text-center mb-3">Testni boshlashdan oldin qoidalar bilan tanishing:</p>
+    <ul class="space-y-2 text-xs font-semibold text-gray-700 mb-4">
+      <li class="flex gap-2"><i class="fa-solid fa-door-open text-jf-red mt-0.5"></i><span>Testdan, Telegramdan yoki ilovadan chiqsangiz, <b>test avtomatik yakunlanadi</b>.</span></li>
+      <li class="flex gap-2"><i class="fa-solid fa-circle-xmark text-jf-red mt-0.5"></i><span>Javob berilmagan savollar <b>noto'g'ri</b> hisoblanadi.</span></li>
+      <li class="flex gap-2"><i class="fa-solid fa-stopwatch text-jf-red mt-0.5"></i><span>Har savolga <b>15 soniya</b>, faqat <b>1 marta</b> urinish beriladi.</span></li>
+      <li class="flex gap-2"><i class="fa-solid fa-camera text-jf-red mt-0.5"></i><span>Test tugagach natijani <b>screenshot qilib botga yuborasiz</b>.</span></li>
+    </ul>
+    <button onclick="confirmStart()" class="w-full bg-jf-red text-white font-extrabold py-3.5 rounded-2xl text-sm shadow-ios-red active-bounce">ROZIMAN, BOSHLASH</button>
+    <button onclick="closeConsent()" class="w-full mt-2 text-gray-500 font-bold py-2 text-xs active-bounce">Bekor qilish</button>
+  </div>
+</div>
+
+<!-- Test tugagandan keyingi menyu -->
+<div id="endModal" class="hidden absolute inset-0 z-50 flex items-center justify-center p-5 bg-slate-950/85">
+  <div class="w-full bg-white rounded-3xl p-5 text-center shadow-2xl">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-3"><i class="fa-solid fa-camera"></i></div>
+    <h3 class="text-lg font-black mb-1">TEST YAKUNLANDI</h3>
+    <p id="endLeftNote" class="hidden text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-2 mb-2">Telegramdan chiqqaningiz uchun test avtomatik yakunlandi.</p>
+    <p class="text-xs text-gray-600 leading-relaxed mb-4">Natija ekranini <b>screenshot qiling</b> va <b>botga yuboring</b>. Screenshotda ismingiz, ID raqamingiz va natija ko'rinib turishi kerak.</p>
+    <button onclick="closeEnd()" class="w-full bg-jf-red text-white font-extrabold py-3.5 rounded-2xl text-sm shadow-ios-red active-bounce">TUSHUNARLI</button>
+  </div>
+</div>
+
+<header class="bg-white border-b border-gray-100 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
+  <div class="flex items-center space-x-3">
+    <div class="w-10 h-10 rounded-xl overflow-hidden border border-gray-200 bg-red-600 flex items-center justify-center">
+      <img id="logoImg" src="https://i.ibb.co/C57RNJ4f/jonim-JF.jpg" alt="JF" referrerpolicy="no-referrer" onerror="nextLogo(this)" class="w-full h-full object-cover">
+      <span id="fallbackLogo" class="hidden text-white font-black text-xs">JF</span>
+    </div>
+    <div>
+      <h1 class="text-sm font-extrabold text-jf-textDark flex items-center gap-1.5">JF FOOTBALL QUIZ <i class="fa-solid fa-circle-check text-jf-red text-xs"></i></h1>
+      <p class="text-[10px] text-gray-500 font-medium">Rasmiy Bilim Sinov Platformasi</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-1.5 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-full">
+    <i class="fa-solid fa-user text-gray-500 text-[10px]"></i>
+    <span id="tgUsername" class="text-[11px] font-bold text-gray-700 max-w-[80px] truncate">Mehmon</span>
+  </div>
+</header>
+
+<div id="mainView" class="flex-1 bg-jf-bgGray overflow-y-auto p-4 relative">
+
+<!-- 1. KIRISH -->
+<section id="welcomeScreen" class="flex flex-col h-full justify-between py-2">
+  <div>
+    <div class="w-full bg-gradient-to-br from-jf-red via-red-600 to-jf-darkRed text-white rounded-3xl p-6 shadow-ios-red relative overflow-hidden mb-4">
+      <div class="absolute -right-6 -bottom-6 opacity-15 text-8xl"><i class="fa-solid fa-trophy"></i></div>
+      <p class="text-xs font-bold uppercase tracking-widest text-red-100/90 mb-1">Bosh Sovrin</p>
+      <h2 class="text-3xl font-black leading-none mb-2">25,000 SO'M</h2>
+      <p class="text-xs text-red-100/90 font-medium leading-relaxed">Barcha savolga 100% to'g'ri javob bering va mukofotni qo'lga kiriting!</p>
+    </div>
+    <div class="space-y-2.5 text-left">
+      <div class="bg-white border border-jf-cardBorder p-3.5 rounded-2xl flex items-center space-x-3.5"><div class="w-9 h-9 rounded-xl bg-red-50 text-jf-red flex items-center justify-center"><i class="fa-solid fa-stopwatch"></i></div><div><h4 class="text-xs font-bold">Har savolga 15 soniya</h4><p class="text-[11px] text-gray-500">Savollar va variantlar har o'yinchida aralash keladi.</p></div></div>
+      <div class="bg-white border border-jf-cardBorder p-3.5 rounded-2xl flex items-center space-x-3.5"><div class="w-9 h-9 rounded-xl bg-red-50 text-jf-red flex items-center justify-center"><i class="fa-solid fa-1"></i></div><div><h4 class="text-xs font-bold">Faqat 1 marta urinish</h4><p class="text-[11px] text-gray-500">Yangi savollar qo'shilgunча qayta topshirib bo'lmaydi.</p></div></div>
+      <div class="bg-white border border-jf-cardBorder p-3.5 rounded-2xl flex items-center space-x-3.5"><div class="w-9 h-9 rounded-xl bg-red-50 text-jf-red flex items-center justify-center"><i class="fa-solid fa-user-shield"></i></div><div><h4 class="text-xs font-bold">Xavfsizlik himoyasi</h4><p class="text-[11px] text-gray-500">Telegramdan chiqsangiz test avtomatik tugaydi.</p></div></div>
+      <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl flex items-start space-x-3.5"><div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div><div><h4 class="text-xs font-bold text-amber-900">Muhim ogohlantirish</h4><p class="text-[11px] text-amber-800 leading-relaxed">Test boshlangach ilovadan chiqmang va boshqa oynaga o'tmang: test avtomatik yakunlanadi, javobsiz savollar xato hisoblanadi. Test tugagach natijani screenshot qilib botga yuboring.</p></div></div>
+    </div>
+  </div>
+  <button id="startBtn" disabled onclick="openConsent()" class="mt-4 w-full bg-jf-red disabled:opacity-50 text-white font-extrabold py-4 rounded-2xl shadow-ios-red active-bounce text-sm tracking-wide">
+    <span id="startBtnText">YUKLANMOQDA...</span>
+  </button>
+</section>
+
+<!-- 1b. MENYU (o'yin turini tanlash) -->
+<section id="menuScreen" class="hidden flex flex-col h-full justify-center py-2">
+  <div class="w-full bg-gradient-to-br from-jf-red via-red-600 to-jf-darkRed text-white rounded-3xl p-5 shadow-ios-red relative overflow-hidden mb-4">
+    <div class="absolute -right-5 -bottom-5 opacity-15 text-7xl"><i class="fa-solid fa-futbol"></i></div>
+    <p class="text-[10px] font-bold uppercase tracking-widest text-red-100/90 mb-1">Asosiy menyu</p>
+    <h2 class="text-xl font-black leading-tight">O'yin turini tanlang</h2>
+  </div>
+  <div class="space-y-3">
+    <button onclick="openMode('quiz')" class="w-full bg-white border border-jf-cardBorder rounded-3xl p-4 flex items-center gap-3.5 text-left shadow-sm active-bounce">
+      <div class="w-12 h-12 rounded-2xl bg-red-50 text-jf-red flex items-center justify-center text-xl flex-shrink-0"><i class="fa-solid fa-circle-question"></i></div>
+      <div class="flex-1 min-w-0">
+        <h4 class="text-sm font-extrabold text-jf-textDark">Test savollari</h4>
+        <p class="text-[11px] text-gray-500 mt-0.5">Savol-javob • har savolga 15 soniya</p>
+        <span id="badge_quiz" class="hidden inline-block mt-1.5 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5"></span>
+      </div>
+      <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+    </button>
+    <button onclick="openMode('names')" class="w-full bg-white border border-jf-cardBorder rounded-3xl p-4 flex items-center gap-3.5 text-left shadow-sm active-bounce">
+      <div class="w-12 h-12 rounded-2xl bg-red-50 text-jf-red flex items-center justify-center text-xl flex-shrink-0"><i class="fa-solid fa-futbol"></i></div>
+      <div class="flex-1 min-w-0">
+        <h4 class="text-sm font-extrabold text-jf-textDark">Futbolchini toping</h4>
+        <p class="text-[11px] text-gray-500 mt-0.5">Ismdagi tushib qolgan harflarni toping</p>
+        <span id="badge_names" class="hidden inline-block mt-1.5 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5"></span>
+      </div>
+      <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+    </button>
+  </div>
+</section>
+
+<!-- 2b. ISM TOPISH O'YINI -->
+<section id="nameScreen" class="hidden flex flex-col h-full justify-between">
+  <div>
+    <div class="bg-white border border-jf-cardBorder rounded-2xl p-3 mb-3 flex items-center justify-between">
+      <div>
+        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Joriy Ism</p>
+        <p class="text-base font-black"><span id="nCur" class="text-jf-red">1</span> <span class="text-gray-300">/</span> <span id="nTot">15</span></p>
+      </div>
+      <div class="relative w-12 h-12 flex items-center justify-center">
+        <svg class="w-12 h-12 -rotate-90"><circle cx="24" cy="24" r="20" stroke="#F1F5F9" stroke-width="4" fill="transparent"/><circle id="nTimerCircle" class="timer-circle" cx="24" cy="24" r="20" stroke="#E50914" stroke-width="4" fill="transparent" stroke-dasharray="125.6" stroke-dashoffset="0" stroke-linecap="round"/></svg>
+        <span id="nTimeLeft" class="absolute font-black text-xs">20</span>
+      </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-3 overflow-hidden"><div id="nProgress" class="bg-jf-red h-1.5 rounded-full transition-all duration-300" style="width:7%"></div></div>
+    <div class="bg-white border border-jf-cardBorder rounded-2xl p-4 mb-3 relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-1 h-full bg-jf-red"></div>
+      <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center mb-3">Futbolchi ismini to'ldiring</p>
+      <div id="nameBoxes" class="flex flex-wrap justify-center gap-x-4 gap-y-2.5 min-h-[90px] items-center"></div>
+    </div>
+    <div id="nToast" class="hidden mb-2 p-3 rounded-2xl text-xs font-extrabold text-center flex items-center justify-center space-x-2"><span id="nToastIcon"></span><span id="nToastText"></span></div>
+  </div>
+  <div>
+    <div id="kbd" class="space-y-1.5 mb-2.5"></div>
+    <button id="nameSubmit" disabled onclick="submitName()" class="w-full bg-jf-red disabled:opacity-40 text-white font-extrabold py-3.5 rounded-2xl shadow-ios-red active-bounce text-sm tracking-wide">TEKSHIRISH</button>
+  </div>
+</section>
+
+<!-- 2. TEST -->
+<section id="quizScreen" class="hidden flex flex-col h-full justify-between">
+  <div>
+    <div class="bg-white border border-jf-cardBorder rounded-2xl p-3 mb-4 flex items-center justify-between">
+      <div>
+        <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Joriy Savol</p>
+        <p class="text-base font-black"><span id="currentQNum" class="text-jf-red">1</span> <span class="text-gray-300">/</span> <span id="totalQNum">25</span></p>
+      </div>
+      <div class="relative w-12 h-12 flex items-center justify-center">
+        <svg class="w-12 h-12 -rotate-90"><circle cx="24" cy="24" r="20" stroke="#F1F5F9" stroke-width="4" fill="transparent"/><circle id="timerCircle" class="timer-circle" cx="24" cy="24" r="20" stroke="#E50914" stroke-width="4" fill="transparent" stroke-dasharray="125.6" stroke-dashoffset="0" stroke-linecap="round"/></svg>
+        <span id="timeLeft" class="absolute font-black text-xs">15</span>
+      </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-4 overflow-hidden"><div id="progressBar" class="bg-jf-red h-1.5 rounded-full transition-all duration-300" style="width:4%"></div></div>
+    <div class="bg-white border border-jf-cardBorder rounded-2xl p-5 min-h-[130px] flex items-center justify-center text-center mb-4 relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-1 h-full bg-jf-red"></div>
+      <h3 id="questionText" class="text-sm sm:text-base font-bold leading-relaxed"></h3>
+    </div>
+    <div id="optionsContainer" class="space-y-2.5"></div>
+  </div>
+  <div id="feedbackToast" class="hidden my-2 p-3.5 rounded-2xl text-xs font-extrabold text-center flex items-center justify-center space-x-2"><span id="toastIcon"></span><span id="toastText"></span></div>
+</section>
+
+<!-- 3. NATIJA -->
+<section id="resultScreen" class="hidden flex flex-col h-full justify-between py-2 text-center">
+  <div class="flex flex-col items-center">
+    <div id="resultIconBox" class="w-20 h-20 rounded-3xl flex items-center justify-center text-3xl mb-3 border-2"></div>
+    <h2 id="resultTitle" class="text-2xl font-black">Natija Tayyor!</h2>
+    <p id="resultSub" class="text-xs text-gray-500 mt-1 px-4"></p>
+    <div class="w-full bg-white border border-jf-cardBorder rounded-2xl p-4 my-4 space-y-3">
+      <div class="grid grid-cols-3 divide-x divide-gray-100">
+        <div><p class="text-[10px] text-gray-400 uppercase font-bold">To'g'ri</p><p id="correctCount" class="text-xl font-black text-emerald-600">0</p></div>
+        <div><p class="text-[10px] text-gray-400 uppercase font-bold">Noto'g'ri</p><p id="wrongCount" class="text-xl font-black text-red-600">0</p></div>
+        <div><p class="text-[10px] text-gray-400 uppercase font-bold">Aniqlik</p><p id="accuracyPercent" class="text-xl font-black text-blue-600">0%</p></div>
+      </div>
+      <div id="rewardBanner" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-left"><p class="font-extrabold text-sm text-emerald-800">TABRIKLAYMIZ! 🎉</p><p class="text-[11px] text-emerald-700">100% natija! Mukofot uchun natijani botga yuboring.</p></div>
+      <div id="failBanner" class="hidden bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-left"><p class="font-bold text-red-800">Mukofot berilmadi</p><p class="text-[11px] text-red-700">Mukofot uchun barcha savolga xatosiz javob berish lozim.</p></div>
+    </div>
+  </div>
+  <div class="space-y-2 pt-2">
+    <div id="shotCard" class="bg-white border border-jf-cardBorder rounded-2xl p-3 text-left text-[11px] space-y-1">
+      <div class="flex justify-between"><span class="text-gray-400 font-bold uppercase">O'yin</span><span id="shotMode" class="font-extrabold text-jf-textDark"></span></div>
+      <div class="flex justify-between"><span class="text-gray-400 font-bold uppercase">Ism</span><span id="shotName" class="font-extrabold text-jf-textDark"></span></div>
+      <div class="flex justify-between"><span class="text-gray-400 font-bold uppercase">Telegram ID</span><span id="shotId" class="font-extrabold text-jf-textDark"></span></div>
+      <div class="flex justify-between"><span class="text-gray-400 font-bold uppercase">Sana</span><span id="shotDate" class="font-extrabold text-jf-textDark"></span></div>
+    </div>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-900 leading-relaxed">📸 Shu ekranni screenshot qiling va botga yuboring.</div>
+    
+    <button onclick="showMenu()" class="w-full bg-white border border-jf-red text-jf-red font-extrabold py-3 rounded-2xl text-xs active-bounce"><i class="fa-solid fa-grip mr-1.5"></i>MENYUGA QAYTISH</button>
+    <p class="text-[11px] text-gray-400">Yangi savollar qo'shilganda qayta urinish ochiladi.</p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<script>
+/* ============ SOZLAMALAR ============ */
+// Savollarni kodsiz boshqarish uchun Google Sheets "Publish to web" (CSV) havolasini shu yerga qo'ying.
+// Bo'sh qoldirilsa, quyidagi ichki 25 ta savol ishlatiladi.
+const SHEET_CSV_URL = "";
+// true: bitta qurilmada test faqat 1 marta topshiriladi. false: cheksiz (sinash uchun).
+// Qayta ochish: sahifa manziliga ?reset=1 qo'shing.
+const ONE_ATTEMPT = true;
+const QUESTIONS_PER_GAME = 25;
+const TIME_PER_Q = 15;
+const REVEAL_MS = 3000;
+// --- Ism topish o'yini ---
+const NAMES_PER_GAME = 15;   // har ishtirokchiga nechta ism
+const NAME_TIME = 20;        // har ismga soniya
+const NAME_REVEAL_MS = 2000;
+// Futbolchilar ismlari. Har ishtirokchiga shu ro'yxatdan tasodifiy 15 tasi tushadi,
+// tushib qoladigan harflar ham har safar tasodifiy tanlanadi.
+const NAMES = [
+"Julián Álvarez",
+"Enzo Fernández",
+"Alexis Mac Allister",
+"Rodrigo De Paul",
+"Emiliano Martínez",
+"Ángel Correa",
+"Nicolás Otamendi",
+"Lorenzo Insigne",
+"Felipe Anderson",
+"Sandro Tonali",
+"Nicolò Barella",
+"Lautaro Martínez",
+"Mateo Kovačić",
+"Joško Gvardiol",
+"Dominik Livaković",
+"Cristiano Ronaldo",
+"Lionel Messi",
+"Kylian Mbappé",
+"Neymar",
+"Erling Haaland",
+"Mohamed Salah",
+"Vinícius Júnior",
+"Jude Bellingham",
+"Lamine Yamal",
+"Robert Lewandowski",
+"Kevin De Bruyne",
+"Luka Modrić",
+"Karim Benzema",
+"Andrés Iniesta",
+"Xavi Hernández",
+"Ronaldo Nazário",
+"Ronaldinho",
+"Zinedine Zidane",
+"David Beckham",
+"Thierry Henry",
+"Sergio Ramos",
+"Thomas Müller",
+"Bastian Schweinsteiger",
+"Philipp Lahm",
+"Andriy Shevchenko",
+"Samuel Etoo",
+"Diego Maradona",
+"Johan Cruyff",
+"Roberto Baggio",
+"Paolo Maldini",
+"Franz Beckenbauer",
+"Marco van Basten",
+"Luís Figo",
+"Kaká",
+"Antoine Griezmann",
+"Olivier Giroud",
+"Eden Hazard",
+"Thibaut Courtois",
+"Alisson Becker",
+"Manuel Neuer",
+"Gianluigi Donnarumma",
+"James Rodríguez",
+"Gabriel Martinelli",
+"Bruno Fernandes",
+"Bernardo Silva",
+"Sergio Busquets",
+"Casemiro",
+"Toni Kroos",
+"Federico Valverde",
+"Riyad Mahrez",
+"Sadio Mané",
+"Son Heung min",
+"Romelu Lukaku",
+"Paulo Dybala",
+"Ángel Di María",
+"Jamie Vardy",
+"Harry Kane",
+"Phil Foden",
+"Bukayo Saka",
+"Marcus Rashford",
+"Jadon Sancho",
+"Mikel Oyarzabal",
+"Ferran Torres",
+"Pedri",
+"Gavi",
+"Rodri",
+"Joao Félix",
+"Rafael Leao",
+"Vitinha",
+"Joao Cancelo",
+"Rúben Dias",
+"Nuno Mendes",
+"Trent Alexander Arnold",
+"André Onana",
+"Martin Ødegaard",
+"James Maddison",
+"Jorginho",
+"Khvicha Kvaratskhelia",
+"Michael Olise",
+"Cole Palmer",
+"Declan Rice",
+"William Saliba"
+];
+
+/* Ichki savollar: [savol, TO'G'RI javob, xato1, xato2, xato3]  (tartib keyin aralashtiriladi) */
+const BUILTIN = [
+["Birinchi Oltin to'p (Ballon d'Or) mukofoti 1956-yilda kimga topshirilgan?", "Stanley Matthews", "Alfredo Di Stéfano", "Raymond Kopa", "Lev Yashin"],
+["1966-yilgi JCh finalida hat-trick urgan futbolchi kim?", "Geoff Hurst", "Bobby Charlton", "Martin Peters", "Helmut Haller"],
+["1986-yilgi JCh chorak finalida Maradona \"Xudoning qo'li\" golini qaysi jamoaga urgan?", "Angliya", "Belgiya", "Germaniya FR", "Italiya"],
+["Bitta JCh turnirida eng ko'p gol (13 ta) urgan futbolchi kim?", "Just Fontaine", "Gerd Müller", "Ronaldo Nazário", "Sándor Kocsis"],
+["2005-yil Istanbul finalida Liverpool tanaffusda 0:3 hisobda yutqazib, qaysi jamoani penaltilarda yengdi?", "Milan", "Juventus", "Barcelona", "Real Madrid"],
+["Premyer-liganing bitta mavsumida eng ko'p gol (36 ta) urgan futbolchi kim?", "Erling Haaland", "Mohamed Salah", "Alan Shearer", "Cristiano Ronaldo"],
+["JCh tarixidagi eng tez gol (taxminan 11-soniya) muallifi kim?", "Hakan Şükür", "Clint Dempsey", "Václav Mašek", "Bryan Robson"],
+["JCh tarixida eng ko'p o'yin (26 ta) o'tkazgan futbolchi kim?", "Lionel Messi", "Lothar Matthäus", "Miroslav Klose", "Paolo Maldini"],
+["Jarima maydonchasidagi penalti nuqtasi darvoza chizig'idan necha metr uzoqlikda?", "11 metr", "9 metr", "10 metr", "12 metr"],
+["1930-yilgi birinchi JChda nechta yevropa jamoasi qatnashgan?", "4 ta", "8 ta", "2 ta", "6 ta"],
+["JChda gol urgan eng yosh futbolchi (17 yosh) kim?", "Pelé", "Michael Owen", "Kylian Mbappé", "Lamine Yamal"],
+["1999-yilgi Chempionlar Ligasi finalida Manchester United Bayernni qanday hisobda yengdi?", "2:1", "3:1", "1:0", "2:0"],
+["2022-yilgi JChda eng yaxshi darvozabon (Oltin qo'lqop) kim deb topilgan?", "Emiliano Martínez", "Hugo Lloris", "Yassine Bounou", "Dominik Livaković"],
+["1998-yilgi JCh finalida Fransiya Braziliyani qanday hisobda mag'lub etgan?", "3:0", "2:1", "3:1", "2:0"],
+["Quyidagi holatlarning qaysi birida ofsayd belgilanmaydi?", "Autdan to'pni to'g'ridan-to'g'ri olganda", "Erkin zarbadan to'pni olganda", "Shtangadan qaytgan to'pni olganda", "Himoyachidan tasodifan qaytgan to'pni olganda"],
+["Chempionlar Ligasi nomi bilan o'tkazilgan birinchi mavsum (1992/93) g'olibi kim?", "Marseille", "Milan", "Barcelona", "Ajax"],
+["Yevropa chempionatini (EURO) eng ko'p marta yutgan jamoa qaysi?", "Ispaniya", "Germaniya", "Italiya", "Fransiya"],
+["Cristiano Ronaldo Real Madrid safida jami nechta gol urgan?", "450 ta", "420 ta", "480 ta", "395 ta"],
+["2024-yilgi Oltin to'p (Ballon d'Or) sovrindori kim?", "Rodri", "Vinícius Júnior", "Jude Bellingham", "Lamine Yamal"],
+["JCh finalida uch marta o'ynab, birortasida ham yutolmagan jamoa qaysi?", "Niderlandiya", "Chexoslovakiya", "Vengriya", "Shvetsiya"],
+["1970-yilgi JCh finalida Braziliya Italiyani qanday hisobda yengdi?", "4:1", "3:1", "2:1", "3:0"],
+["JCh finalida hat-trick urgan ikkinchi futbolchi (Hurstdan keyin) kim?", "Kylian Mbappé", "Lionel Messi", "Zinedine Zidane", "Ronaldo Nazário"],
+["2015/16 mavsumda Leicester City Premyer-ligani yutganda uning bosh murabbiyi kim edi?", "Claudio Ranieri", "Brendan Rodgers", "Nigel Pearson", "Roberto Martínez"],
+["O'zbekiston terma jamoasining Osiyo Kubogidagi eng yaxshi natijasi qaysi?", "4-o'rin (2011)", "Finalchi", "3-o'rin", "Chorak final"],
+["2026-yilgi JChda nechta jamoa ishtirok etadi?", "48 ta", "32 ta", "40 ta", "64 ta"]
+];
+
+/* ============ TELEGRAM ============ */
+const tg = window.Telegram?.WebApp;
+let tgUser = { id: 0, first_name: "Foydalanuvchi", username: "" };
+if (tg) {
+  tg.ready(); tg.expand();
+  try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch(e){}
+  try { tg.enableClosingConfirmation && tg.enableClosingConfirmation(); } catch(e){}
+  if (tg.initDataUnsafe?.user) {
+    tgUser = tg.initDataUnsafe.user;
+    document.getElementById('tgUsername').innerText = tgUser.first_name || tgUser.username;
+  }
+  // Ilova fonga ketganda (ilovalar almashinuvi, skrinshot menyusi ba'zan) yopish
+  try { tg.onEvent('deactivated', () => coverNow()); } catch(e){}
+}
+
+/* ============ HOLAT ============ */
+let POOL = [], VERSION = "", activeQuestions = [], currentIndex = 0, score = 0;
+let finishedAt = 0, nextTimer = null, timerInterval = null, timeRemaining = TIME_PER_Q, isAnswerLocked = false, inQuiz = false;
+const $ = id => document.getElementById(id);
+
+/* ============ SAVOLLARNI YUKLASH ============ */
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ""; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i+1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+async function loadQuestions() {
+  if (SHEET_CSV_URL) {
+    try {
+      const r = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+      const rows = parseCSV(await r.text()).slice(1)              // 1-qator: sarlavha
+        .map(x => x.map(s => s.trim()))
+        .filter(x => x.length >= 5 && x.slice(0, 5).every(Boolean));
+      if (rows.length >= 4) return rows;
+    } catch (e) { console.warn("Sheet yuklanmadi, ichki savollar ishlatiladi"); }
+  }
+  return BUILTIN;
+}
+function hashStr(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+/* ============ 1 MARTA URINISH (savollar to'plami o'zgarsa avtomatik ochiladi) ============ */
+let mode = 'quiz', NVERSION = "";
+const doneData = { quiz: null, names: null };
+const doneKey = (m = mode) => (m === 'names' ? "jf_name_" + NVERSION : "jf_done_" + VERSION);
+function markDone(obj) { if (ONE_ATTEMPT) doneData[mode] = obj; storeSet(doneKey(), JSON.stringify(obj)); }
+const parseDone = v => { if (!v) return null; try { return JSON.parse(v) || {}; } catch(e) { return {}; } };
+function storeGet(key, cb) {
+  let local = null; try { local = localStorage.getItem(key); } catch(e){}
+  if (tg?.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
+    let called = false; const fin = v => { if (!called) { called = true; cb(v || local); } };
+    try { tg.CloudStorage.getItem(key, (err, v) => fin(err ? null : v)); setTimeout(() => fin(null), 2500); } catch(e){ fin(null); }
+  } else cb(local);
+}
+function storeSet(key, val) {
+  if (!ONE_ATTEMPT) return;
+  try { localStorage.setItem(key, val); } catch(e){}
+  try { if (tg?.CloudStorage && tg.isVersionAtLeast('6.9')) tg.CloudStorage.setItem(key, val); } catch(e){}
+}
+
+async function init() {
+  POOL = await loadQuestions();
+  VERSION = hashStr(POOL.map(x => x.join("|")).join("#"));
+  NVERSION = hashStr(NAMES.join("#"));
+  if (/[?&]reset=1/.test(location.search)) {
+    ['quiz', 'names'].forEach(m => {
+      try { localStorage.removeItem(doneKey(m)); } catch(e){}
+      try { tg?.CloudStorage?.removeItem(doneKey(m)); } catch(e){}
+    });
+  }
+  const ready = () => { $('startBtn').disabled = false; $('startBtnText').innerText = (doneData.quiz && doneData.names) ? "NATIJALARNI KO'RISH ➜" : "BOSHLASH ➜"; };
+  if (!ONE_ATTEMPT) { ready(); return; }
+  storeGet(doneKey('quiz'), a => storeGet(doneKey('names'), b => {
+    doneData.quiz = parseDone(a); doneData.names = parseDone(b);
+    ready();
+  }));
+}
+
+/* ============ XAVFSIZLIK ============ */
+document.addEventListener('contextmenu', e => e.preventDefault());
+['copy','cut','dragstart','selectstart'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+document.addEventListener('keydown', e => {
+  if (!inQuiz) return;   // natija ekranida screenshot olish mumkin
+  if (e.ctrlKey || e.metaKey || e.key === 'PrintScreen' || e.keyCode === 123 || e.key === 'Meta') {
+    e.preventDefault(); coverNow();
+    try { navigator.clipboard.writeText(" "); } catch(e){}   // PrintScreen buferini tozalash
+  }
+});
+document.addEventListener('keyup', e => { if (inQuiz && e.key === 'PrintScreen') { coverNow(); try { navigator.clipboard.writeText(" "); } catch(e){} } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) coverNow(); });
+window.addEventListener('pagehide', coverNow);
+// Telefonda ko'p barmoqli bosish / uzoq bosish (skrinshot jestlari) paytida yopish
+document.addEventListener('touchstart', e => { if (e.touches.length > 2) coverNow(); }, { passive: true });
+
+// Telegramdan / ilovadan chiqilsa test avtomatik yakunlanadi
+function coverNow() {
+  if (!inQuiz) return;
+  clearInterval(timerInterval); clearTimeout(nextTimer);
+  isAnswerLocked = true;
+  finishQuiz(true);
+  $('resultSub').innerText = "Telegramdan chiqqaningiz uchun test avtomatik yakunlandi. Javob berilmagan savollar noto'g'ri hisoblandi.";
+}
+function openConsent() {
+  if ($('startBtn').disabled) return;
+  if (doneData.quiz && doneData.names) showMenu(); else $('consentModal').classList.remove('hidden');
+}
+function closeConsent() { $('consentModal').classList.add('hidden'); }
+function confirmStart() { closeConsent(); showMenu(); }
+
+/* ============ MENYU ============ */
+function showMenu() {
+  inQuiz = false;
+  ['welcomeScreen', 'quizScreen', 'nameScreen', 'resultScreen'].forEach(x => $(x).classList.add('hidden'));
+  $('menuScreen').classList.remove('hidden');
+  ['quiz', 'names'].forEach(m => {
+    const d = doneData[m], b = $('badge_' + m);
+    b.classList.toggle('hidden', !d);
+    if (d) b.innerText = d.finished ? `TOPSHIRILGAN • ${d.score}/${d.total}` : "TOPSHIRILGAN";
+  });
+}
+function openMode(m) {
+  mode = m;
+  const d = doneData[m];
+  if (d) {   // allaqachon topshirilgan — natijani ko'rsatish
+    activeQuestions = { length: d.total || (m === 'names' ? NAMES_PER_GAME : QUESTIONS_PER_GAME) };
+    score = d.score || 0; finishedAt = d.finished || 0;
+    showResult(true);
+  } else if (m === 'names') startNames();
+  else startQuiz();
+}
+function showEndModal(left) {
+  $('endLeftNote').classList.toggle('hidden', !left);
+  $('endModal').classList.remove('hidden');
+}
+function closeEnd() { $('endModal').classList.add('hidden'); }
+
+function buildWatermark() {
+  const wm = $('wm'); wm.innerHTML = ""; wm.style.display = "block";
+  const tag = `ID ${tgUser.id || '-'} • ${tgUser.username || tgUser.first_name}`;
+  for (let i = 0; i < 14; i++) {
+    const s = document.createElement('span');
+    s.style.top = (i * 8 - 4) + "%";
+    s.innerText = (tag + "   ").repeat(6);
+    wm.appendChild(s);
+  }
+}
+
+/* ============ O'YIN ============ */
+function shuffle(a) { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function startQuiz() { mode = 'quiz'; beginQuiz(); }
+function beginQuiz() {
+  // Boshlanishi bilan "topshirildi" deb belgilanadi — yopib qayta kirish yordam bermaydi
+  markDone({ score: 0, total: Math.min(QUESTIONS_PER_GAME, POOL.length), started: Date.now() });
+
+  activeQuestions = shuffle(POOL).slice(0, QUESTIONS_PER_GAME).map(r => {
+    const opts = shuffle([{ t: r[1], ok: true }, { t: r[2] }, { t: r[3] }, { t: r[4] }]);
+    return { q: r[0], options: opts.map(o => o.t), correctAnswer: opts.findIndex(o => o.ok) };
+  });
+  currentIndex = 0; score = 0; inQuiz = true;
+  buildWatermark();
+  $('welcomeScreen').classList.add('hidden');
+  $('menuScreen').classList.add('hidden');
+  $('resultScreen').classList.add('hidden');
+  $('quizScreen').classList.remove('hidden');
+  renderCurrentQuestion();
+}
+
+function renderCurrentQuestion() {
+  isAnswerLocked = false;
+  $('feedbackToast').classList.add('hidden');
+  const d = activeQuestions[currentIndex];
+  $('currentQNum').innerText = currentIndex + 1;
+  $('totalQNum').innerText = activeQuestions.length;
+  $('progressBar').style.width = ((currentIndex + 1) / activeQuestions.length * 100) + "%";
+  $('questionText').innerText = d.q;
+  const c = $('optionsContainer'); c.innerHTML = "";
+  d.options.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = "option-btn w-full bg-white border border-jf-cardBorder p-3.5 rounded-2xl flex items-center justify-between text-left shadow-sm active-bounce text-xs font-bold text-jf-textDark";
+    b.onclick = () => selectOption(i);
+    const wrap = document.createElement('div'); wrap.className = "flex items-center space-x-3";
+    const badge = document.createElement('span'); badge.className = "w-7 h-7 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center font-black text-[11px] label-badge flex-shrink-0"; badge.innerText = "ABCD"[i];
+    const txt = document.createElement('span'); txt.className = "leading-tight"; txt.innerText = t;   // innerText: XSS yo'q
+    wrap.append(badge, txt);
+    const ic = document.createElement('i'); ic.className = "fa-solid fa-circle icon-indicator text-gray-300 text-xs flex-shrink-0";
+    b.append(wrap, ic); c.appendChild(b);
+  });
+  timeRemaining = TIME_PER_Q;
+  runTimer();
+}
+
+function runTimer(pre = '', T = TIME_PER_Q, onEnd = handleTimeOut) {
+  clearInterval(timerInterval);
+  const circle = $(pre ? 'nTimerCircle' : 'timerCircle'), txt = $(pre ? 'nTimeLeft' : 'timeLeft'), max = 125.6;
+  timeRemaining = T;
+  const paint = () => {
+    txt.innerText = timeRemaining;
+    circle.style.strokeDashoffset = max - (timeRemaining / T) * max;
+    circle.style.stroke = timeRemaining <= 5 ? "#EF4444" : "#E50914";
+  };
+  paint();
+  timerInterval = setInterval(() => {
+    timeRemaining--; paint();
+    if (timeRemaining <= 0) { clearInterval(timerInterval); onEnd(); }
+  }, 1000);
+}
+
+function handleTimeOut() {
+  if (isAnswerLocked) return;
+  isAnswerLocked = true;
+  showFeedback(false, "VAQT TUGADI!");
+  lockButtons(-1);
+  nextTimer = setTimeout(nextQuestion, REVEAL_MS);
+}
+
+function selectOption(i) {
+  if (isAnswerLocked) return;
+  isAnswerLocked = true; clearInterval(timerInterval);
+  const ok = i === activeQuestions[currentIndex].correctAnswer;
+  if (ok) score++;
+  markDone({ score, total: activeQuestions.length, answered: currentIndex + 1 });
+  showFeedback(ok, ok ? "TO'G'RI JAVOB!" : "NOTO'G'RI JAVOB!");
+  lockButtons(i, ok);
+  nextTimer = setTimeout(nextQuestion, REVEAL_MS);
+}
+
+// Muhim: xato bo'lsa TO'G'RI javob ko'rsatilmaydi — skrinshot bilan savol kaliti tarqalmasin
+function lockButtons(sel, ok) {
+  $('optionsContainer').querySelectorAll('.option-btn').forEach((btn, idx) => {
+    btn.disabled = true;
+    const icon = btn.querySelector('.icon-indicator'), badge = btn.querySelector('.label-badge');
+    if (idx === sel) {
+      const g = ok;
+      btn.className = `w-full ${g ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-red-50 border-red-500 text-red-900'} border-2 p-3.5 rounded-2xl flex items-center justify-between text-left text-xs font-bold`;
+      badge.className = `w-7 h-7 rounded-xl ${g ? 'bg-emerald-500' : 'bg-red-500'} text-white flex items-center justify-center font-black text-[11px] flex-shrink-0`;
+      icon.className = `fa-solid ${g ? 'fa-circle-check text-emerald-600' : 'fa-circle-xmark text-red-600'} text-base flex-shrink-0`;
+    } else btn.style.opacity = "0.5";
+  });
+}
+
+function showFeedback(ok, msg) {
+  const t = $('feedbackToast');
+  t.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800');
+  t.classList.add(...(ok ? ['bg-emerald-100', 'text-emerald-800'] : ['bg-red-100', 'text-red-800']));
+  $('toastIcon').innerHTML = ok ? '<i class="fa-solid fa-circle-check text-emerald-600"></i>' : '<i class="fa-solid fa-triangle-exclamation text-red-600"></i>';
+  $('toastText').innerText = msg;
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= activeQuestions.length) finishQuiz();
+  else if (mode === 'names') renderNameQuestion(); else renderCurrentQuestion();
+}
+
+function finishQuiz(left = false) {
+  clearInterval(timerInterval); inQuiz = false;
+  $('wm').style.display = "none";
+  finishedAt = Date.now();
+  markDone({ score, total: activeQuestions.length, finished: finishedAt });
+  showResult(false);
+  showEndModal(left);
+}
+
+function showResult(alreadyPlayed) {
+  inQuiz = false;
+  ['welcomeScreen', 'quizScreen', 'menuScreen', 'nameScreen'].forEach(x => $(x).classList.add('hidden'));
+  $('resultScreen').classList.remove('hidden');
+  const total = activeQuestions.length, wrong = total - score, acc = Math.round(score / total * 100), perfect = score === total;
+  $('correctCount').innerText = score; $('wrongCount').innerText = wrong; $('accuracyPercent').innerText = acc + "%";
+  const box = $('resultIconBox');
+  if (perfect) {
+    $('resultTitle').innerText = "MUKAMMAL NATIJA!";
+    $('resultSub').innerText = "Siz barcha savolga xatosiz javob berdingiz!";
+    box.className = "w-20 h-20 bg-emerald-100 border-emerald-500 rounded-3xl flex items-center justify-center text-3xl mb-3 text-emerald-600 border-2";
+    box.innerHTML = '<i class="fa-solid fa-crown"></i>';
+  } else {
+    $('resultTitle').innerText = acc >= 70 ? "Yaxshi Natija!" : "Muvaffaqiyatsiz Sinov";
+    $('resultSub').innerText = acc >= 70 ? "Barakalla, lekin bosh mukofot uchun 100% kerak!" : "Keyingi safar albatta o'xshaydi!";
+    box.className = "w-20 h-20 bg-red-100 border-red-500 rounded-3xl flex items-center justify-center text-3xl mb-3 text-red-600 border-2";
+    box.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+  }
+  $('shotName').innerText = tgUser.first_name || tgUser.username || "—";
+  $('shotId').innerText = tgUser.id || "—";
+  $('shotMode').innerText = mode === 'names' ? "Futbolchini toping" : "Test savollari";
+  const dt = finishedAt ? new Date(finishedAt) : null, p = n => String(n).padStart(2, "0");
+  $('shotDate').innerText = dt ? `${p(dt.getDate())}.${p(dt.getMonth() + 1)}.${dt.getFullYear()} ${p(dt.getHours())}:${p(dt.getMinutes())}` : "—";
+  $('rewardBanner').classList.toggle('hidden', !perfect || mode === 'names');
+  $('failBanner').classList.toggle('hidden', perfect || mode === 'names');
+  if (mode === 'names') $('resultSub').innerText = perfect ? "Siz barcha ismlarni xatosiz topdingiz!" : (acc >= 70 ? "Barakalla! Yaxshi natija." : "Keyingi safar albatta o'xshaydi!");
+  if (alreadyPlayed) {
+    $('resultSub').innerText = "Siz bu testni allaqachon topshirgansiz. Yangi savollar qo'shilganda qayta urinish ochiladi.";
+  }
+}
+
+function sendDataToTelegramBot() {
+  const payload = {
+    user_id: tgUser.id,
+    username: tgUser.username || tgUser.first_name,
+    score, total: activeQuestions.length,
+    won_prize: score === activeQuestions.length,
+    quiz_version: VERSION
+  };
+  if (tg) tg.sendData(JSON.stringify(payload));
+  else alert(JSON.stringify(payload, null, 2));
+}
+
+/* ============ ISM TOPISH O'YINI ============ */
+const isLetter = c => /\p{L}/u.test(c);
+const normCh = c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/gi, 'o').replace(/ł/gi, 'l').replace(/đ/gi, 'd').replace(/æ/gi, 'a').replace(/ß/g, 's').toUpperCase();
+const ng = { sel: 0 };
+
+function makeNameItem(name) {
+  const chars = [...name].map(ch => ({ ch, blank: false, val: "" }));
+  const cand = []; let letters = 0;
+  chars.forEach((c, i) => { if (isLetter(c.ch)) { letters++; if (i > 0 && isLetter(chars[i - 1].ch)) cand.push(i); } });  // so'z boshidagi harf ko'rinib turadi
+  const k = Math.min(cand.length, Math.max(2, Math.round(letters * 0.35)));
+  shuffle(cand).slice(0, k).forEach(i => chars[i].blank = true);
+  return { name, chars, blanks: chars.map((c, i) => c.blank ? i : -1).filter(i => i >= 0) };
+}
+
+function buildKeyboard() {
+  const k = $('kbd'); if (k.childElementCount) return;
+  ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM⌫"].forEach(row => {
+    const r = document.createElement('div'); r.className = "flex gap-1 justify-center";
+    [...row].forEach(l => {
+      const b = document.createElement('button');
+      const back = l === '⌫';
+      b.className = "h-11 rounded-xl border font-extrabold text-sm active-bounce " + (back ? "flex-[1.5] bg-red-50 border-red-200 text-jf-red" : "flex-1 bg-white border-jf-cardBorder text-jf-textDark shadow-sm");
+      b.innerHTML = back ? '<i class="fa-solid fa-delete-left"></i>' : l;
+      b.onclick = () => back ? backspace() : typeLetter(l);
+      r.appendChild(b);
+    });
+    k.appendChild(r);
+  });
+}
+
+function startNames() {
+  mode = 'names';
+  markDone({ score: 0, total: Math.min(NAMES_PER_GAME, NAMES.length), started: Date.now() });
+  activeQuestions = shuffle(NAMES).slice(0, NAMES_PER_GAME).map(makeNameItem);
+  currentIndex = 0; score = 0; inQuiz = true;
+  buildWatermark(); buildKeyboard();
+  ['welcomeScreen', 'menuScreen', 'resultScreen', 'quizScreen'].forEach(x => $(x).classList.add('hidden'));
+  $('nameScreen').classList.remove('hidden');
+  renderNameQuestion();
+}
+
+function renderNameQuestion() {
+  isAnswerLocked = false; ng.sel = 0;
+  $('nToast').classList.add('hidden');
+  $('nCur').innerText = currentIndex + 1;
+  $('nTot').innerText = activeQuestions.length;
+  $('nProgress').style.width = ((currentIndex + 1) / activeQuestions.length * 100) + "%";
+  drawName(); updateSubmit();
+  runTimer('n', NAME_TIME, handleNameTimeOut);
+}
+
+function drawName(state) {   // state: undefined | 'ok' | 'bad'
+  const it = activeQuestions[currentIndex], box = $('nameBoxes');
+  box.innerHTML = "";
+  const words = it.name.split(' ').map(w => w.length).concat(1);
+  const avail = box.clientWidth || 300, gap = 4;
+  const size = Math.max(18, Math.min(32, Math.floor((avail - (Math.max(...words) - 1) * gap) / Math.max(...words))));
+  const selIdx = it.blanks[ng.sel];
+  let wordEl = null;
+  it.chars.forEach((c, i) => {
+    if (c.ch === ' ') { wordEl = null; return; }
+    if (!wordEl) { wordEl = document.createElement('div'); wordEl.className = "flex"; wordEl.style.gap = gap + "px"; box.appendChild(wordEl); }
+    const cell = document.createElement(c.blank ? 'button' : 'div');
+    let cls = "flex items-center justify-center font-black rounded-lg ";
+    if (!isLetter(c.ch)) { cell.style.width = (size / 2) + "px"; cell.style.height = size * 1.25 + "px"; cell.className = cls + "text-gray-500"; cell.innerText = c.ch; wordEl.appendChild(cell); return; }
+    cell.style.width = size + "px"; cell.style.height = size * 1.25 + "px"; cell.style.fontSize = Math.round(size * 0.55) + "px";
+    if (!c.blank) cls += "bg-gray-100 border border-gray-200 text-jf-textDark";
+    else if (state === 'ok') cls += "bg-emerald-50 border-2 border-emerald-500 text-emerald-700";
+    else if (state === 'bad') cls += "bg-red-50 border-2 border-red-500 text-red-700";
+    else if (i === selIdx) cls += "bg-red-50 border-2 border-jf-red text-jf-red shadow-ios-red";
+    else cls += "bg-white border-2 border-dashed border-red-300 text-jf-textDark";
+    cell.className = cls;
+    cell.innerText = c.blank ? c.val : c.ch.toUpperCase();
+    if (c.blank) cell.onclick = () => { if (isAnswerLocked) return; ng.sel = it.blanks.indexOf(i); drawName(); };
+    wordEl.appendChild(cell);
+  });
+}
+
+function updateSubmit() {
+  const it = activeQuestions[currentIndex];
+  $('nameSubmit').disabled = isAnswerLocked || !it.blanks.every(i => it.chars[i].val);
+}
+
+function typeLetter(l) {
+  if (!inQuiz || mode !== 'names' || isAnswerLocked) return;
+  const it = activeQuestions[currentIndex], n = it.blanks.length;
+  it.chars[it.blanks[ng.sel]].val = l;
+  for (let k = 1; k <= n; k++) { const j = (ng.sel + k) % n; if (!it.chars[it.blanks[j]].val) { ng.sel = j; break; } }
+  drawName(); updateSubmit();
+}
+function backspace() {
+  if (!inQuiz || mode !== 'names' || isAnswerLocked) return;
+  const it = activeQuestions[currentIndex], cur = it.chars[it.blanks[ng.sel]];
+  if (cur.val) cur.val = "";
+  else if (ng.sel > 0) { ng.sel--; it.chars[it.blanks[ng.sel]].val = ""; }
+  drawName(); updateSubmit();
+}
+
+function showNameFeedback(ok, msg) {
+  const t = $('nToast');
+  t.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800');
+  t.classList.add(...(ok ? ['bg-emerald-100', 'text-emerald-800'] : ['bg-red-100', 'text-red-800']));
+  $('nToastIcon').innerHTML = ok ? '<i class="fa-solid fa-circle-check text-emerald-600"></i>' : '<i class="fa-solid fa-triangle-exclamation text-red-600"></i>';
+  $('nToastText').innerText = msg;
+}
+
+// Muhim: xato bo'lsa TO'G'RI ism ko'rsatilmaydi (skrinshot orqali tarqalmasin)
+function submitName() {
+  if (isAnswerLocked) return;
+  const it = activeQuestions[currentIndex];
+  if (!it.blanks.every(i => it.chars[i].val)) return;
+  isAnswerLocked = true; clearInterval(timerInterval);
+  const ok = it.blanks.every(i => normCh(it.chars[i].val) === normCh(it.chars[i].ch));
+  if (ok) score++;
+  markDone({ score, total: activeQuestions.length, answered: currentIndex + 1 });
+  showNameFeedback(ok, ok ? "TO'G'RI JAVOB!" : "NOTO'G'RI JAVOB!");
+  drawName(ok ? 'ok' : 'bad'); updateSubmit();
+  nextTimer = setTimeout(nextQuestion, NAME_REVEAL_MS);
+}
+function handleNameTimeOut() {
+  if (isAnswerLocked) return;
+  isAnswerLocked = true;
+  showNameFeedback(false, "VAQT TUGADI!");
+  drawName('bad'); updateSubmit();
+  nextTimer = setTimeout(nextQuestion, NAME_REVEAL_MS);
+}
+
+// Kompyuterda klaviatura bilan yozish
+document.addEventListener('keydown', e => {
+  if (!inQuiz || mode !== 'names' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[a-zA-Z]$/.test(e.key)) typeLetter(e.key.toUpperCase());
+  else if (e.key === 'Backspace') backspace();
+  else if (e.key === 'Enter') submitName();
+});
+
+init();
+</script>
+</body>
+</html>
